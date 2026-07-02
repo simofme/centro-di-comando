@@ -845,7 +845,7 @@ input,textarea,select{font-size:16px!important;}
 
       <!-- Sub-tabs -->
       <div class="subtab-bar" style="margin-bottom:.85rem;">
-        <button class="mtab on" id="mtab-wb" onclick="showMagTab('wb')">🔵 Wet Blue</button>
+        <button class="mtab on" id="mtab-wb" onclick="showMagTab('wb')">🔵 Lotti Wet Blue</button>
         <button class="mtab" id="mtab-and" onclick="showMagTab('and')">🏭 Ciclo 1</button>
         <button class="mtab" id="mtab-crust" onclick="showMagTab('crust')">🟤 Crust</button>
         <button class="btn-add-ord" style="margin-left:auto;" id="mag-add-btn" onclick="magAddAction()">+ Aggiungi</button>
@@ -857,7 +857,7 @@ input,textarea,select{font-size:16px!important;}
           <table class="lotti-table">
             <thead><tr>
               <th></th><th>Lotto</th><th>Tipo</th><th>Provenienza</th>
-              <th>Data arrivo</th><th>Stock</th><th>m²</th><th>Ciclo 1</th><th>Crust</th><th>Partite</th><th></th>
+              <th>Data arrivo</th><th>Stock</th><th>m²</th><th>Ciclo 1</th><th>Crust</th><th>Archiv.</th><th>Partite</th><th></th>
             </tr></thead>
             <tbody id="wb-table-body"></tbody>
           </table>
@@ -1468,6 +1468,7 @@ function loadSt(){
   try{S.macchine=JSON.parse(localStorage.getItem("cc_mac") ||"[]")}catch{}
   try{S.cicli=JSON.parse(localStorage.getItem("cc_cicli")||"[]")}catch{}
   try{S.ricetteRiconcia=JSON.parse(localStorage.getItem("cc_ricric")||"[]")}catch{}
+  try{S.scartiLotti=JSON.parse(localStorage.getItem("cc_scarti")||"[]")}catch{}
   try{S.hide30=localStorage.getItem("cc_hide30")==="1"}catch{}
   try{S.bkBin=localStorage.getItem("cc_bkbin")||""}catch{}
   try{const v=parseFloat(localStorage.getItem("cc_mqMV"));if(!isNaN(v)&&v>0)S.mqPelleMV=v}catch{}
@@ -1646,7 +1647,8 @@ async function pushToCloud(){
           S.partite=mergeById(S.partite,rec.partite); S.tempi=mergeById(S.tempi,rec.tempi);
           S.macchine=mergeById(S.macchine,rec.macchine); S.cicli=mergeById(S.cicli,rec.cicli);
           S.ricetteRiconcia=mergeById(S.ricetteRiconcia,rec.ricetteRiconcia);
-          savT();savE();savO();savLotti();savInvii();savPt();savTC();savMacchine();savCicli();savRicRic();
+          if(rec.scartiLotti) S.scartiLotti=rec.scartiLotti;
+          savT();savE();savO();savLotti();savInvii();savPt();savTC();savMacchine();savCicli();savRicRic();savScarti();
         }
       }
     }catch(e){/* guardia fallita (offline?): procedi col push normale */}
@@ -1656,6 +1658,7 @@ async function pushToCloud(){
       ponti:S.ponti||[],lotti:S.lotti||[],invii:S.invii||[],
       partite:S.partite||[],tempi:S.tempi||[],macchine:S.macchine||[],
       cicli:S.cicli||[],ricetteRiconcia:S.ricetteRiconcia||[],
+      scartiLotti:S.scartiLotti||[],
       mqPelleMV:S.mqPelleMV,mqPelleVIT:S.mqPelleVIT,pelliRifCiclo:S.pelliRifCiclo,hide30:S.hide30,
       bkBin:S.bkBin||'',
       updated:Date.now()
@@ -1697,12 +1700,13 @@ async function pullFromCloud(force=false){
       if(rec.macchine&&rec.macchine.length)S.macchine=rec.macchine;
       if(rec.cicli&&rec.cicli.length)S.cicli=rec.cicli;
       if(rec.ricetteRiconcia&&rec.ricetteRiconcia.length)S.ricetteRiconcia=rec.ricetteRiconcia;
+      if(rec.scartiLotti){S.scartiLotti=rec.scartiLotti;localStorage.setItem('cc_scarti',JSON.stringify(rec.scartiLotti));}
       if(rec.mqPelleMV>0){S.mqPelleMV=rec.mqPelleMV;localStorage.setItem('cc_mqMV',rec.mqPelleMV);}
       if(rec.mqPelleVIT>0){S.mqPelleVIT=rec.mqPelleVIT;localStorage.setItem('cc_mqVIT',rec.mqPelleVIT);}
       if(rec.pelliRifCiclo>0){S.pelliRifCiclo=rec.pelliRifCiclo;localStorage.setItem('cc_pelliRif',rec.pelliRifCiclo);}
       if(typeof rec.hide30==='boolean'){S.hide30=rec.hide30;localStorage.setItem('cc_hide30',rec.hide30?'1':'0');}
       if(rec.bkBin&&!S.bkBin){S.bkBin=rec.bkBin;localStorage.setItem('cc_bkbin',rec.bkBin);}
-      savT();savE();savO();savLotti();savInvii();savPt();savTC();savMacchine();savCicli();savRicRic();
+      savT();savE();savO();savLotti();savInvii();savPt();savTC();savMacchine();savCicli();savRicRic();savScarti();
       renderTasks();renderCal();renderGauges();renderOrderList();renderMag();renderTC();
       if(activeTab==='cicli'){renderCicli();if(_cicliSub==='ricette')renderRicRic();}
       populateCicliArtDatalist();
@@ -3527,7 +3531,7 @@ function renderWetBlue() {
   const body = document.getElementById('wb-table-body');
   if(!body) return;
   if(!lotti.length) {
-    body.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--tx3);padding:2rem;font-size:.8rem;">Nessun lotto. Premi "+ Nuovo Lotto".</td></tr>';
+    body.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--tx3);padding:2rem;font-size:.8rem;">Nessun lotto. Premi "+ Nuovo Lotto".</td></tr>';
     return;
   }
 
@@ -3553,7 +3557,7 @@ function renderWetBlue() {
     const lottiG=lotti.filter(l=>(l.tipo||'').toUpperCase()===g.tipo);
     if(!lottiG.length) return;
     const gPelli=lottiG.reduce((s,l)=>s+(l.pallets||[]).filter(p=>p.stato==='stock').reduce((a,p)=>a+(p.pelli||0),0),0);
-    html2 += `<tr><td colspan="11" style="background:rgba(212,175,55,.06);padding:.4rem .8rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:600;">${g.label} · ${gPelli.toLocaleString('it-IT')} pelli in stock</td></tr>`;
+    html2 += `<tr><td colspan="12" style="background:rgba(212,175,55,.06);padding:.4rem .8rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:600;">${g.label} · ${gPelli.toLocaleString('it-IT')} pelli in stock</td></tr>`;
     lottiG.forEach(l => {
       const pallets = l.pallets||[];
       const inStock = pallets.filter(p=>p.stato==='stock').reduce((s,p)=>s+(p.pelli||0),0);
@@ -3571,6 +3575,7 @@ function renderWetBlue() {
         <td style="font-family:'JetBrains Mono',monospace;color:var(--tx2);font-size:.74rem;">${mq.val>0?mq.val.toFixed(0)+(mq.stim?'*':''):'—'}</td>
         <td style="font-family:'JetBrains Mono',monospace;color:#fb923c;">${inAnd||'—'}</td>
         <td style="font-family:'JetBrains Mono',monospace;color:#a78bfa;">${inCrust||'—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:.74rem;">${(()=>{const sc=scartiPerLotto(l.numero);return sc===0?'<span style="color:var(--tx3);">—</span>':`<span style="color:${sc<0?'#f87171':'#34d399'};">${sc>0?'+':''}${sc}</span>`;})()}</td>
         <td style="font-size:.7rem;">${ptTags}</td>
         <td>
           <button class="ord-act" onclick="editLotto('${l.id}')" title="Modifica">✏</button>
@@ -3578,7 +3583,7 @@ function renderWetBlue() {
         </td>
       </tr>
       <tr id="lotto-exp-${l.id}" style="display:none;" class="pallet-rows">
-        <td colspan="11">
+        <td colspan="12">
           <table style="width:100%;border-collapse:collapse;">
             <tr style="font-size:.6rem;color:var(--tx3);">
               <td style="padding:.25rem .6rem .25rem 1.8rem;">Pallet</td>
@@ -3619,7 +3624,7 @@ function renderAndromeda() {
   const area = document.getElementById('mag-and-view');
   if(!area) return;
 
-  const attivi = invii.filter(i=>!i.stato||i.stato==='attivo'||i.stato==='in-lavorazione'||i.stato==='tornato-parziale').sort((a,b)=>(b.dataInvio||'').localeCompare(a.dataInvio||''));
+  const attivi = invii.filter(i=>(!i.stato||i.stato==='attivo'||i.stato==='in-lavorazione'||i.stato==='tornato-parziale') && i.stato!=='archiviato').sort((a,b)=>(b.dataInvio||'').localeCompare(a.dataInvio||''));
   const tornati = invii.filter(i=>i.stato==='tornato').sort((a,b)=>(b.dataInvio||'').localeCompare(a.dataInvio||''));
 
   let html = '';
@@ -3679,6 +3684,7 @@ function renderAndromeda() {
           </button>
           <button class="mbtn mbtn-red" style="font-size:.72rem;padding:.35rem .8rem;" onclick="annullaInvio('${inv.id}')">✗ Annulla invio</button>
           ${isParziale?`<button class="mbtn mbtn-gray" style="font-size:.7rem;padding:.3rem .7rem;" onclick="ripristinaRitorno('${inv.id}')">🔄 Ripristina</button>`:''}
+          <button class="mbtn mbtn-gray" style="font-size:.7rem;padding:.3rem .7rem;" onclick="archiviaRimanenze('${inv.id}')">📥 Archivia rimanenze</button>
         </div>
       </div>`;
     });
@@ -3930,6 +3936,51 @@ function toggleInvioPallet(n, row) {
 }
 
 function closeInvioModal() { document.getElementById('invio-modal-bg').style.display='none'; invioLottoId=null; }
+
+
+// ═══ ARCHIVIA RIMANENZE: registra lo scarto (lavorato − dichiarato) nel lotto ══
+function archiviaRimanenze(invioId){
+  const inv=(S.invii||[]).find(x=>x.id===invioId);
+  if(!inv) return;
+  const dichiarato=getPelliRitornoInvio(inv);       // totale previsto dall'invio
+  const lavorato=getPelliAssegnateInvio(invioId);   // pelli realmente caricate nelle partite
+  const scarto=lavorato-dichiarato;                  // + se più del dichiarato, − se meno
+  const tipo=inv.lotti?.[0]?.tipo||'';
+  const tipoNorm = tipo==='VINT'?'MV':tipo;          // VINT conta come MV
+  const tipoLbl = tipoNorm==='MV'?'MV':tipoNorm==='VIT'?'Vitellini':'pelli';
+  const lottoNum=(inv.lotti||[]).map(l=>l.num).join(', ')||'—';
+  const anno=(inv.lotti?.[0]?.anno)||new Date().getFullYear();
+
+  const segno = scarto>0?'+':'';
+  if(!confirm(`Archiviare questo invio nello storico?\n\nDichiarato: ${dichiarato} · Lavorato: ${lavorato}\nScarto registrato: ${segno}${scarto} pelli (${tipoLbl}, lotto ${lottoNum})\n\nLe pelli non lavorate NON torneranno disponibili.`)) return;
+
+  // Registra lo scarto nel lotto
+  if(!S.scartiLotti) S.scartiLotti=[];
+  S.scartiLotti.push({
+    id: Date.now().toString(),
+    invioId, lottoNum, anno, tipo:tipoNorm,
+    dichiarato, lavorato, scarto,
+    data: new Date().toISOString().slice(0,10)
+  });
+  savScarti();
+
+  // Sposta l'invio nello storico (archiviato)
+  inv.stato='archiviato';
+  inv.dataArchiviazione=new Date().toISOString().slice(0,10);
+  savInvii(); schedulePush();
+  renderAndromeda(); renderWetBlue(); renderMag();
+}
+
+// Somma scarti per anno e tipo: {MV:+X, VIT:−Y}
+function scartiPerAnno(anno){
+  const r={MV:0, VIT:0};
+  (S.scartiLotti||[]).forEach(s=>{ if((s.anno||0)==anno && r[s.tipo]!=null) r[s.tipo]+=s.scarto; });
+  return r;
+}
+// Somma scarti per uno specifico lotto (per numero)
+function scartiPerLotto(lottoNum){
+  return (S.scartiLotti||[]).filter(s=>s.lottoNum===lottoNum).reduce((a,s)=>a+s.scarto,0);
+}
 
 function saveInvio() {
   if(!invioSelectedPallets.size){ alert('Seleziona almeno un pallet.'); return; }
@@ -4414,6 +4465,22 @@ function renderInvStorico(){
   const ordEvasi=(S.orders||[]).filter(o=>o.fase==='Consegnato' && !ordineNascosto(o));
   const ptEsaurite=(S.partite||[]).filter(p=>{ const d=p.disponibile!=null?p.disponibile:(p.pelli||0); return (d<=0 || p.completato) && !partitaNascosta(p); });
   let out='';
+
+  // ── Riquadro scarti dichiarato/reale per anno ──
+  if((S.scartiLotti||[]).length>0){
+    const anni=[...new Set((S.scartiLotti||[]).map(s=>s.anno))].sort((a,b)=>b-a);
+    out+=`<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin:.4rem 0;">Scarti dichiarato / reale</div>`;
+    anni.forEach(anno=>{
+      const sc=scartiPerAnno(anno);
+      const fmt=(v)=>`<span style="color:${v<0?'#f87171':v>0?'#34d399':'var(--tx3)'};font-family:'JetBrains Mono',monospace;font-weight:700;">${v>0?'+':''}${v}</span>`;
+      out+=`<div class="ghost-card" style="background:var(--surf2);border-radius:9px;padding:.55rem .8rem;margin-bottom:.35rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:.8rem;font-weight:600;">Anno ${anno}</span>
+        <span style="font-size:.78rem;">MV ${fmt(sc.MV)} · Vitellini ${fmt(sc.VIT)}</span></div>
+        <div style="font-size:.62rem;color:var(--tx3);margin-top:.2rem;">Positivo = pelli in più del dichiarato · Negativo = pelli non lavorate</div>
+      </div>`;
+    });
+  }
+
   if(ordEvasi.length){
     out+=`<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin:.4rem 0;">Ordini consegnati (${ordEvasi.length})</div>`;
     ordEvasi.sort((a,b)=>(b.consegnatoAt||0)-(a.consegnatoAt||0)).forEach(o=>{
@@ -4602,6 +4669,20 @@ function stampaInventario(){
   if(!almeno){
     doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(100);
     doc.text('Nessuna giacenza registrata.', mL, y+4);
+  }
+
+  // ── Scarti dichiarato/reale per anno ──
+  if((S.scartiLotti||[]).length>0){
+    const anno=new Date().getFullYear();
+    const sc=scartiPerAnno(anno);
+    nuovaPaginaSeServe(16);
+    y+=3;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(0);
+    doc.text('Scarti dichiarato / reale '+anno, mL, y); y+=5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(40);
+    doc.text('MV: '+(sc.MV>0?'+':'')+sc.MV+' pelli    Vitellini: '+(sc.VIT>0?'+':'')+sc.VIT+' pelli', mL, y); y+=4;
+    doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(120);
+    doc.text('Positivo = pelli in più del dichiarato · Negativo = pelli non lavorate', mL, y); y+=3;
   }
 
   // Nota a piè (solo se c'è spazio, altrimenti nuova pagina)
@@ -4811,6 +4892,7 @@ function mediaMqPerPelle(tipo){
 // ═══════════════════════════════════════════════════════════════════
 // RICETTE RICONCIA
 // ═══════════════════════════════════════════════════════════════════
+function savScarti(){ localStorage.setItem('cc_scarti', JSON.stringify(S.scartiLotti||[])); }
 function savRicRic(){localStorage.setItem('cc_ricric',JSON.stringify(S.ricetteRiconcia||[]));}
 
 // ─ Sub-nav Cicli ───────────────────────────────────────────────────
